@@ -317,7 +317,11 @@ async function seedFor(uid: string): Promise<Book[]> {
   const sb = getSupabase();
   const rows = SEED_BOOKS.map((b: SeedBook) => ({ ...b, user_id: uid }));
   const { data, error } = await sb.from('books').insert(rows).select();
-  if (error || !data) return [];
+  if (error) {
+    console.error('[page-streak] seed insert failed', { uid, error });
+    return [];
+  }
+  if (!data) return [];
   return data.map((r) => rowToBook(r as RawBookRow));
 }
 
