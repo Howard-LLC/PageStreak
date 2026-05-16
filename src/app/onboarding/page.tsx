@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { T, accentGrad, type Accent } from '@/lib/design/theme';
 import { useTheme } from '@/lib/design/ThemeContext';
@@ -311,6 +311,17 @@ function Welcome({
   );
 }
 
+const MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+
+function daysInMonth(month: number, year: number): number {
+  // month is 1-12. JS Date with day 0 of next month gives last day of this month.
+  if (!month || !year) return 31;
+  return new Date(year, month, 0).getDate();
+}
+
 function BirthdayStep({
   birthday,
   setBirthday,
@@ -326,7 +337,46 @@ function BirthdayStep({
   accent: Accent;
   theme: StepProps['theme'];
 }) {
-  const valid = !!birthday;
+  // birthday is stored as ISO YYYY-MM-DD
+  const parts = birthday.split('-');
+  const initYear = parts[0] ? Number(parts[0]) : 0;
+  const initMonth = parts[1] ? Number(parts[1]) : 0;
+  const initDay = parts[2] ? Number(parts[2]) : 0;
+  const [month, setMonth] = useState<number>(initMonth);
+  const [day, setDay] = useState<number>(initDay);
+  const [year, setYear] = useState<number>(initYear);
+
+  const thisYear = new Date().getFullYear();
+  const years = useMemo(() => {
+    const out: number[] = [];
+    for (let y = thisYear; y >= 1925; y--) out.push(y);
+    return out;
+  }, [thisYear]);
+  const maxDay = daysInMonth(month, year);
+  const days = useMemo(() => {
+    const out: number[] = [];
+    for (let d = 1; d <= maxDay; d++) out.push(d);
+    return out;
+  }, [maxDay]);
+
+  // If the picked day exceeds the new month's day count, clip it.
+  useEffect(() => {
+    if (day > maxDay) setDay(maxDay);
+  }, [maxDay, day]);
+
+  // Sync the combined ISO date back up.
+  useEffect(() => {
+    if (month && day && year) {
+      const iso = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      setBirthday(iso);
+    } else {
+      setBirthday('');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [month, day, year]);
+
+  const valid = !!month && !!day && !!year;
+
   return (
     <div style={{ animation: 'ps-fade-up 0.5s ease' }}>
       <Heading>When were you born?</Heading>
@@ -334,24 +384,32 @@ function BirthdayStep({
         We use this to pace recommendations to the right life stage — books that&apos;ll mean
         something to you now, not five years ago.
       </Sub>
-      <input
-        type="date"
-        value={birthday}
-        onChange={(e) => setBirthday(e.target.value)}
-        max={new Date().toISOString().slice(0, 10)}
-        style={{
-          marginTop: 36,
-          padding: '16px 20px',
-          fontSize: 18,
-          fontFamily: T.sans,
-          background: theme.surface,
-          color: theme.ink,
-          border: `1px solid ${theme.lineStrong}`,
-          borderRadius: 14,
-          outline: 'none',
-          minWidth: 260,
-        }}
-      />
+      <div style={{ marginTop: 36, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+        <DateSelect
+          label="Month"
+          value={month}
+          onChange={setMonth}
+          options={MONTHS.map((m, i) => ({ value: i + 1, label: m }))}
+          width={180}
+          theme={theme}
+        />
+        <DateSelect
+          label="Day"
+          value={day}
+          onChange={setDay}
+          options={days.map((d) => ({ value: d, label: String(d) }))}
+          width={110}
+          theme={theme}
+        />
+        <DateSelect
+          label="Year"
+          value={year}
+          onChange={setYear}
+          options={years.map((y) => ({ value: y, label: String(y) }))}
+          width={140}
+          theme={theme}
+        />
+      </div>
       <div style={{ marginTop: 40, display: 'flex', gap: 12 }}>
         <SecondaryBtn onClick={onBack} theme={theme}>
           ← Back
@@ -361,6 +419,91 @@ function BirthdayStep({
         </PrimaryBtn>
       </div>
     </div>
+  );
+}
+
+function DateSelect({
+  label,
+  value,
+  onChange,
+  options,
+  width,
+  theme,
+}: {
+  label: string;
+  value: number;
+  onChange: (n: number) => void;
+  options: { value: number; label: string }[];
+  width: number;
+  theme: StepProps['theme'];
+}) {
+  return (
+    <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <span
+        style={{
+          font: `600 11px ${T.sans}`,
+          color: theme.ink3,
+          letterSpacing: '0.12em',
+          textTransform: 'uppercase',
+        }}
+      >
+        {label}
+      </span>
+      <div style={{ position: 'relative', width }}>
+        <select
+          value={value || ''}
+          onChange={(e) => onChange(Number(e.target.value))}
+          style={{
+            appearance: 'none',
+            WebkitAppearance: 'none',
+            MozAppearance: 'none',
+            width: '100%',
+            padding: '14px 38px 14px 16px',
+            fontSize: 17,
+            fontFamily: T.sans,
+            fontWeight: 500,
+            background: theme.surface,
+            color: value ? theme.ink : theme.ink3,
+            border: `1px solid ${theme.lineStrong}`,
+            borderRadius: 12,
+            outline: 'none',
+            cursor: 'pointer',
+            lineHeight: 1.2,
+          }}
+        >
+          <option value="" disabled>
+            —
+          </option>
+          {options.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 14 14"
+          style={{
+            position: 'absolute',
+            right: 14,
+            top: '50%',
+            transform: 'translateY(-50%)',
+            pointerEvents: 'none',
+            color: theme.ink3,
+          }}
+        >
+          <path
+            d="M3 5 L7 9 L11 5"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </div>
+    </label>
   );
 }
 
@@ -460,7 +603,9 @@ function BooksStep({
       setSearching(true);
       try {
         const res = await fetch(
-          `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=8&fields=key,title,author_name,cover_i,number_of_pages_median`,
+          `https://openlibrary.org/search.json?q=${encodeURIComponent(
+            query,
+          )}&limit=25&fields=key,title,author_name,cover_i,number_of_pages_median,language,edition_count&language=eng`,
           { signal: ctrl.signal },
         );
         if (!res.ok) return;
@@ -471,17 +616,53 @@ function BooksStep({
             author_name?: string[];
             cover_i?: number;
             number_of_pages_median?: number;
+            edition_count?: number;
           }[];
         };
-        const hits: SearchHit[] = (json.docs ?? [])
-          .filter((d) => d.title && d.author_name?.length)
-          .map((d) => ({
-            key: d.key ?? `${d.title}-${d.author_name?.[0]}`,
-            title: d.title!,
-            author: d.author_name?.[0] ?? '',
-            pages: d.number_of_pages_median ?? null,
-            coverId: d.cover_i ?? null,
-          }));
+        const docs = json.docs ?? [];
+
+        const BAD_TITLE = /\b(summary|study guide|analysis|cliffsnotes|sparknotes|workbook|abridged|condensed|companion to|guide to|notes on)\b/i;
+        const BAD_AUTHOR = /\b(bookcaps|summary|sparknotes|cliffsnotes|study guide|smartreads|instaread|booksumo|getflashnotes|reads ?on ?demand|publishing|press)\b/i;
+
+        const normTitle = (s: string) =>
+          s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().replace(/^the\s+/, '');
+        const normAuthor = (s: string) =>
+          s.toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').trim();
+
+        const filtered = docs.filter((d) => {
+          if (!d.title || !d.author_name?.length) return false;
+          const author = d.author_name[0];
+          if (BAD_TITLE.test(d.title)) return false;
+          if (BAD_AUTHOR.test(author)) return false;
+          return true;
+        });
+
+        // Dedupe by normalised title+author, keep the one with the highest edition_count
+        const byKey = new Map<string, (typeof filtered)[number]>();
+        for (const d of filtered) {
+          const k = `${normTitle(d.title!)}|${normAuthor(d.author_name![0])}`;
+          const prev = byKey.get(k);
+          if (!prev || (d.edition_count ?? 0) > (prev.edition_count ?? 0)) {
+            byKey.set(k, d);
+          }
+        }
+
+        const deduped = Array.from(byKey.values());
+        // Cover-first, then by edition count (popularity proxy)
+        deduped.sort((a, b) => {
+          const aCover = a.cover_i ? 1 : 0;
+          const bCover = b.cover_i ? 1 : 0;
+          if (aCover !== bCover) return bCover - aCover;
+          return (b.edition_count ?? 0) - (a.edition_count ?? 0);
+        });
+
+        const hits: SearchHit[] = deduped.slice(0, 6).map((d) => ({
+          key: d.key ?? `${d.title}-${d.author_name?.[0]}`,
+          title: d.title!,
+          author: d.author_name?.[0] ?? '',
+          pages: d.number_of_pages_median ?? null,
+          coverId: d.cover_i ?? null,
+        }));
         setResults(hits);
       } catch (err) {
         if ((err as { name?: string })?.name !== 'AbortError') {
