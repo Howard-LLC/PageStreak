@@ -131,6 +131,119 @@ export default function TodayPage() {
           </h1>
         </div>
 
+        {!currentBook && (
+          <section style={{ marginBottom: 80, animation: 'ps-fade-up 0.5s ease' }}>
+            {books.length > 0 ? (
+              <>
+                <Kicker style={{ marginBottom: 16 }}>What&apos;s next</Kicker>
+                <h2
+                  style={{
+                    font: `400 56px ${T.display}`,
+                    fontVariationSettings: '"opsz" 48',
+                    letterSpacing: '-0.022em',
+                    lineHeight: 1.05,
+                    color: theme.ink,
+                    margin: '0 0 16px',
+                  }}
+                >
+                  Pick a book to start.
+                </h2>
+                <p
+                  style={{
+                    font: `400 18px ${T.serif}`,
+                    fontStyle: 'italic',
+                    color: theme.ink2,
+                    lineHeight: 1.5,
+                    margin: '0 0 36px',
+                    maxWidth: 540,
+                  }}
+                >
+                  Tap a cover to set it as your current read, then log pages as you go.
+                </p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 24, maxWidth: 760 }}>
+                  {books
+                    .filter((b) => b.status === 'toread' || b.status === 'reading' || b.status === 'paused')
+                    .slice(0, 4)
+                    .map((b) => (
+                      <div
+                        key={b.id}
+                        onClick={async () => {
+                          await setCurrentBookId(b.id);
+                        }}
+                        style={{ cursor: 'pointer', transition: 'transform 0.2s' }}
+                        onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-4px)')}
+                        onMouseLeave={(e) => (e.currentTarget.style.transform = '')}
+                      >
+                        <BookCover book={b} w="100%" h={200} style={{ width: '100%', height: 200 }} />
+                        <div style={{ font: `500 13px ${T.serif}`, marginTop: 12, lineHeight: 1.3, color: theme.ink }}>
+                          {b.title}
+                        </div>
+                        <div
+                          style={{
+                            font: `400 12px ${T.serif}`,
+                            fontStyle: 'italic',
+                            color: theme.ink3,
+                            marginTop: 3,
+                          }}
+                        >
+                          {b.author}
+                        </div>
+                      </div>
+                    ))}
+                </div>
+                <div style={{ marginTop: 36, display: 'flex', gap: 12, alignItems: 'center' }}>
+                  <Btn
+                    primary
+                    onClick={() => setShowCheckin(true)}
+                    icon={
+                      <svg width="14" height="14" viewBox="0 0 14 14">
+                        <path d="M7 2 V12 M2 7 H12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                      </svg>
+                    }
+                  >
+                    Log today&apos;s pages
+                  </Btn>
+                  <Btn onClick={() => router.push('/library')}>Browse library</Btn>
+                </div>
+              </>
+            ) : (
+              <>
+                <Kicker style={{ marginBottom: 16 }}>Start here</Kicker>
+                <h2
+                  style={{
+                    font: `400 56px ${T.display}`,
+                    fontVariationSettings: '"opsz" 48',
+                    letterSpacing: '-0.022em',
+                    lineHeight: 1.05,
+                    color: theme.ink,
+                    margin: '0 0 16px',
+                  }}
+                >
+                  Your shelf is empty.
+                </h2>
+                <p
+                  style={{
+                    font: `400 18px ${T.serif}`,
+                    fontStyle: 'italic',
+                    color: theme.ink2,
+                    lineHeight: 1.5,
+                    margin: '0 0 36px',
+                    maxWidth: 540,
+                  }}
+                >
+                  Add your first book and we&apos;ll keep track of the rest — pages, streaks, all of it.
+                </p>
+                <div style={{ display: 'flex', gap: 12 }}>
+                  <Btn primary onClick={() => router.push('/library')}>
+                    Add a book
+                  </Btn>
+                  <Btn onClick={() => router.push('/discover')}>Get a suggestion</Btn>
+                </div>
+              </>
+            )}
+          </section>
+        )}
+
         {currentBook && (
           <article
             style={{
@@ -270,12 +383,34 @@ export default function TodayPage() {
               <StreakIcon variant={streakIcon} size={40} accent={accent} />
             </div>
             <div style={{ font: `400 14px ${T.serif}`, color: theme.ink2, marginTop: 10, lineHeight: 1.5 }}>
-              Day streak. Best ever: {bestStreak} days.
+              {streak === 0 ? (
+                <>No streak yet. One session starts the count.</>
+              ) : (
+                <>
+                  Day streak. Best ever: {bestStreak} day{bestStreak === 1 ? '' : 's'}.
+                </>
+              )}
             </div>
           </div>
 
           <div>
             <Kicker style={{ marginBottom: 18 }}>Last seven days</Kicker>
+            {days.every((d) => d.pages === 0) ? (
+              <div
+                style={{
+                  height: 120,
+                  display: 'flex',
+                  alignItems: 'center',
+                  font: `400 14px ${T.serif}`,
+                  fontStyle: 'italic',
+                  color: theme.ink3,
+                  lineHeight: 1.5,
+                  maxWidth: 280,
+                }}
+              >
+                Your week shows up here after your first session.
+              </div>
+            ) : (
             <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: 120 }}>
               {days.map((day, i) => {
                 const hit = day.pages >= goal;
@@ -320,6 +455,7 @@ export default function TodayPage() {
                 );
               })}
             </div>
+            )}
           </div>
         </div>
 
