@@ -10,7 +10,7 @@ interface IntakePayload {
   current?: { title: string; author: string; genre?: string } | null;
 }
 
-interface Pick {
+interface BookPick {
   title: string;
   author: string;
   pages: number;
@@ -82,19 +82,19 @@ const buildUserMessage = (p: IntakePayload): string => {
     lines.push(`Free prompt from the user: "${p.prompt.trim()}"`);
   }
   if (lines.length === 0) {
-    lines.push('The user has no history yet. Pick five well-regarded contemporary non-fiction and literary fiction titles that pair well with someone starting a reading habit.');
+    lines.push('The user has no history yet. BookPick five well-regarded contemporary non-fiction and literary fiction titles that pair well with someone starting a reading habit.');
   }
   return lines.join('\n');
 };
 
-const parsePicks = (raw: string): Pick[] => {
+const parseBookPicks = (raw: string): BookPick[] => {
   // DeepSeek occasionally wraps in code fences despite instructions; strip them defensively.
   const cleaned = raw.trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '');
   const parsed = JSON.parse(cleaned);
   if (!parsed || !Array.isArray(parsed.picks)) {
     throw new Error('Model returned no picks array');
   }
-  const picks: Pick[] = [];
+  const picks: BookPick[] = [];
   for (const p of parsed.picks) {
     if (!p?.title || !p?.author || !p?.why || !p?.genre) continue;
     const pages = Number(p.pages);
@@ -176,9 +176,9 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  let picks: Pick[];
+  let picks: BookPick[];
   try {
-    picks = parsePicks(content);
+    picks = parseBookPicks(content);
   } catch (err) {
     return new Response(JSON.stringify({ error: 'Failed to parse model output', detail: String(err), raw: content.slice(0, 800) }), {
       status: 502,
