@@ -27,20 +27,16 @@ const PICK_PALETTES: Accent[] = [
 ];
 
 async function lookupCover(title: string, author: string): Promise<string | null> {
-  const q = encodeURIComponent(`intitle:${title} inauthor:${author}`);
+  // Open Library: free, no quota. Search for an edition with a cover, then build the image URL.
   try {
-    const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${q}&maxResults=1&printType=books`);
+    const t = encodeURIComponent(title);
+    const a = encodeURIComponent(author);
+    const res = await fetch(`https://openlibrary.org/search.json?title=${t}&author=${a}&limit=3`);
     if (!res.ok) return null;
-    const json = (await res.json()) as {
-      items?: { volumeInfo?: { imageLinks?: { thumbnail?: string; smallThumbnail?: string } } }[];
-    };
-    const link = json.items?.[0]?.volumeInfo?.imageLinks?.thumbnail ?? json.items?.[0]?.volumeInfo?.imageLinks?.smallThumbnail;
-    if (!link) return null;
-    // Normalise: https, drop the page-curl artefact, bump zoom for a crisper image.
-    return link
-      .replace(/^http:/, 'https:')
-      .replace(/&edge=curl/, '')
-      .replace(/zoom=\d+/, 'zoom=3');
+    const json = (await res.json()) as { docs?: { cover_i?: number }[] };
+    const coverId = json.docs?.find((d) => d.cover_i)?.cover_i;
+    if (!coverId) return null;
+    return `https://covers.openlibrary.org/b/id/${coverId}-L.jpg`;
   } catch {
     return null;
   }
