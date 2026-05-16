@@ -2,28 +2,33 @@
 
 A daily check-in for the pages you read. Frontend ported from the [Claude Design](https://claude.ai/design) handoff bundle, backed by Supabase, deployed as a static site to GitHub Pages.
 
+**Live:** https://pagestreak.howardresearch.dev
+
 ## Stack
 
-- **Frontend** — Next.js 15 (App Router) with `output: 'export'` for a fully static build. React 19 + TypeScript. No CSS framework — the design uses inline styles + global `@keyframes` to match the editorial mock exactly.
+- **Frontend** — Next.js 15 (App Router) with `output: 'export'` for a fully static build. React 18 + TypeScript. No CSS framework — the design uses inline styles + global `@keyframes` to match the editorial mock exactly.
 - **Backend** — Supabase (Postgres + Auth + Row-Level Security). The browser calls Supabase directly with the anon key; RLS isolates each user's books, logs, and prefs.
 - **Auth** — Google OAuth via Supabase Auth. No custom session code.
-- **Hosting** — GitHub Pages, deployed via GitHub Actions on push to `main`. The site lives at `https://<user>.github.io/page-streak/`.
+- **Hosting** — GitHub Pages on the custom domain `pagestreak.howardresearch.dev`, deployed via GitHub Actions on push to `main`.
 
 ## One-time setup
 
 ### 1. Supabase project
 
 1. Sign in at [supabase.com](https://supabase.com), create a new project.
-2. In the SQL editor, paste and run `supabase/migrations/0001_init.sql`. This creates `profiles`, `books`, `reading_logs`, `cosmetic_prefs`, RLS policies, and a trigger that bootstraps a profile + cosmetics row on every new sign-up.
+2. Apply the schema. Either:
+   - **CLI**: `supabase login`, `supabase link --project-ref <ref>`, `supabase db push`, or
+   - **SQL editor**: paste and run `supabase/migrations/0001_init.sql` from the dashboard.
+   This creates `profiles`, `books`, `reading_logs`, `cosmetic_prefs`, RLS policies, and a trigger that bootstraps a profile + cosmetics row on every new sign-up.
 3. Grab your project URL and anon key from **Settings → API**.
 
 ### 2. Google OAuth (via Supabase)
 
 1. In Google Cloud Console, create an OAuth client (Web application).
-   - **Authorised JavaScript origins**: `https://<user>.github.io` and `http://localhost:3000`.
+   - **Authorised JavaScript origins**: your production domain (e.g. `https://pagestreak.howardresearch.dev`) and `http://localhost:3000`.
    - **Authorised redirect URIs**: `https://<your-supabase-project>.supabase.co/auth/v1/callback`.
 2. In Supabase: **Authentication → Providers → Google**, paste the client ID and secret, enable.
-3. In **Authentication → URL configuration**, add `https://<user>.github.io/page-streak/` and `http://localhost:3000` to **Site URL** and **Redirect URLs**.
+3. In **Authentication → URL configuration**, set **Site URL** to your production domain and add both `https://<your-domain>/**` and `http://localhost:3000/**` to **Redirect URLs**.
 
 ### 3. Local dev
 
