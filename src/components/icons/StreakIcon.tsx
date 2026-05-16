@@ -1,5 +1,5 @@
 'use client';
-import { useRef, type CSSProperties } from 'react';
+import { useId as useReactId, type CSSProperties } from 'react';
 import { ACCENTS, type Accent, type StreakIconVariant } from '@/lib/design/theme';
 
 interface IconProps {
@@ -10,7 +10,7 @@ interface IconProps {
 }
 
 function useId(prefix: string) {
-  return useRef(prefix + '_' + Math.random().toString(36).slice(2, 9)).current;
+  return prefix + '_' + useReactId().replace(/:/g, '');
 }
 
 export function Flame({ size = 28, accent, animated = true, style = {} }: IconProps) {

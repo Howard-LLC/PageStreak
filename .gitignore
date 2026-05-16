@@ -8,3 +8,4 @@ out
 .vscode
 .idea
 tsconfig.tsbuildinfo
+supabase/.temp
