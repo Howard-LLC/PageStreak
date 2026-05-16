@@ -14,7 +14,7 @@ function isFullBleed(pathname: string) {
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { theme } = useTheme();
-  const { authReady, user, loading } = useApp();
+  const { authReady, user, loading, profile } = useApp();
   const pathname = usePathname();
   const router = useRouter();
   const fullBleed = isFullBleed(pathname);
@@ -22,10 +22,20 @@ export function AppShell({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!hasSupabaseEnv()) return;
     if (!authReady) return;
-    if (!user && !fullBleed) {
-      router.replace('/login');
+    if (!user) {
+      if (!fullBleed) router.replace('/login');
+      return;
     }
-  }, [authReady, user, fullBleed, router]);
+    // Signed in but never finished onboarding → push them through it.
+    if (profile && !profile.onboarded_at && pathname !== '/onboarding') {
+      router.replace('/onboarding');
+      return;
+    }
+    // Already onboarded but hit /onboarding by accident → home.
+    if (profile?.onboarded_at && pathname === '/onboarding') {
+      router.replace('/');
+    }
+  }, [authReady, user, profile, fullBleed, pathname, router]);
 
   return (
     <div style={{ minHeight: '100vh', width: '100%', background: theme.bg, color: theme.ink }}>

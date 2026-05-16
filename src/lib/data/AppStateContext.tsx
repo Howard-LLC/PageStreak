@@ -11,8 +11,12 @@ import {
 import type { Session, User } from '@supabase/supabase-js';
 import { getSupabase, hasSupabaseEnv } from '@/lib/supabase/client';
 import { computeBestStreak, computeStreak, fmt, todayKey } from './streak';
-import { SEED_BOOKS, type SeedBook } from './seedBooks';
 import type { Book, Profile } from './types';
+
+interface OnboardingPayload {
+  birthday: string | null;
+  gender: string | null;
+}
 
 interface AppState {
   loading: boolean;
@@ -40,6 +44,7 @@ interface AppState {
   setCurrentBookId: (id: number) => Promise<void>;
   updateBook: (id: number, patch: Partial<Book>) => Promise<void>;
   addBook: (book: Omit<Book, 'id' | 'user_id'>) => Promise<Book | null>;
+  completeOnboarding: (payload: OnboardingPayload) => Promise<void>;
   refresh: () => Promise<void>;
 }
 
@@ -115,11 +120,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       setProfile(profileRes.data as Profile);
     }
 
-    let userBooks = (booksRes.data ?? []).map((r) => rowToBook(r as RawBookRow));
-    if (userBooks.length === 0) {
-      const seeded = await seedFor(uid);
-      if (seeded.length > 0) userBooks = seeded;
-    }
+    const userBooks = (booksRes.data ?? []).map((r) => rowToBook(r as RawBookRow));
     setBooks(userBooks);
 
     const logMap: Record<string, number> = {};
@@ -274,6 +275,18 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     [user],
   );
 
+  const completeOnboarding = useCallback(
+    async ({ birthday, gender }: OnboardingPayload) => {
+      if (!user) return;
+      const sb = getSupabase();
+      const now = new Date().toISOString();
+      const patch = { birthday, gender, onboarded_at: now };
+      setProfile((p) => (p ? { ...p, ...patch } : p));
+      await sb.from('profiles').update(patch).eq('user_id', user.id);
+    },
+    [user],
+  );
+
   const refresh = useCallback(async () => {
     if (user) await load(user.id);
   }, [user, load]);
@@ -303,6 +316,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     setCurrentBookId,
     updateBook,
     addBook,
+    completeOnboarding,
     refresh,
   };
 
@@ -313,18 +327,6 @@ export function useApp(): AppState {
   const v = useContext(Ctx);
   if (!v) throw new Error('useApp must be used inside <AppStateProvider>');
   return v;
-}
-
-async function seedFor(uid: string): Promise<Book[]> {
-  const sb = getSupabase();
-  const rows = SEED_BOOKS.map((b: SeedBook) => ({ ...b, user_id: uid }));
-  const { data, error } = await sb.from('books').insert(rows).select();
-  if (error) {
-    console.error('[page-streak] seed insert failed', { uid, error });
-    return [];
-  }
-  if (!data) return [];
-  return data.map((r) => rowToBook(r as RawBookRow));
 }
 
 export { fmt };

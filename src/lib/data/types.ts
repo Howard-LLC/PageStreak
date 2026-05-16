@@ -38,6 +38,9 @@ export interface Profile {
   stretch_goal: number;
   current_book_id: number | null;
   created_at: string;
+  birthday: string | null;
+  gender: string | null;
+  onboarded_at: string | null;
 }
 
 export interface CosmeticPrefs {
