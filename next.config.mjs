@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const isPagesBuild = process.env.GITHUB_PAGES === 'true';
-const repo = 'page-streak';
+const repo = 'PageStreak';
 
 const nextConfig = {
   output: 'export',
