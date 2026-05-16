@@ -100,20 +100,35 @@ export default function TodayPage() {
       >
         <div
           style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            font: `400 13px ${T.sans}`,
-            color: theme.ink2,
-            letterSpacing: '0.04em',
-            paddingBottom: 32,
-            marginBottom: 40,
+            paddingBottom: 40,
+            marginBottom: 48,
             borderBottom: `1px solid ${theme.line}`,
           }}
         >
-          <div>
-            {greeting}, {greetingName}.
+          <div
+            style={{
+              font: `500 12px ${T.sans}`,
+              color: theme.ink3,
+              letterSpacing: '0.12em',
+              textTransform: 'uppercase',
+              marginBottom: 18,
+            }}
+          >
+            {dateString}
           </div>
-          <div style={{ fontVariant: 'small-caps', letterSpacing: '0.1em' }}>{dateString}</div>
+          <h1
+            style={{
+              font: `400 68px ${T.display}`,
+              fontVariationSettings: `"opsz" 48`,
+              letterSpacing: '-0.022em',
+              lineHeight: 1.05,
+              color: theme.ink,
+              margin: 0,
+            }}
+          >
+            {greeting},{' '}
+            <span style={{ fontStyle: 'italic', fontWeight: 500 }}>{greetingName}</span>.
+          </h1>
         </div>
 
         {currentBook && (

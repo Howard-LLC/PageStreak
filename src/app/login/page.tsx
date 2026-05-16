@@ -80,15 +80,15 @@ export default function LoginPage() {
           </div>
           <div
             style={{
-              font: `500 18px 'Inter Tight'`,
-              opacity: 0.7,
-              marginTop: 24,
-              maxWidth: 480,
+              font: `500 22px 'Inter Tight'`,
+              opacity: 0.85,
+              marginTop: 28,
+              maxWidth: 540,
               lineHeight: 1.5,
               animation: 'ps-fade-up 0.6s ease 0.1s both',
             }}
           >
-            A daily check-in for the pages you read. Build a streak, find better books, see your
+            A daily check-in for the pages you read. Build a streak, find better books, and see your
             reading life as a whole.
           </div>
           <div
@@ -105,7 +105,7 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <div style={{ position: 'relative', font: `500 13px 'Inter Tight'`, opacity: 0.4 }}>
+        <div style={{ position: 'relative', font: `500 14px 'Inter Tight'`, opacity: 0.55 }}>
           © 2026 Page Streak · Built for people who actually read.
         </div>
       </div>
@@ -131,10 +131,10 @@ export default function LoginPage() {
             animation: 'ps-fade-up 0.5s ease 0.15s both',
           }}
         >
-          <div style={{ font: `800 24px 'Inter Tight'`, letterSpacing: '-0.025em', color: theme.ink }}>
+          <div style={{ font: `800 30px 'Inter Tight'`, letterSpacing: '-0.025em', color: theme.ink }}>
             Welcome back.
           </div>
-          <div style={{ font: `500 14px 'Inter Tight'`, color: theme.ink2, marginTop: 6 }}>
+          <div style={{ font: `500 17px 'Inter Tight'`, color: theme.ink2, marginTop: 8, lineHeight: 1.4 }}>
             Pick up where you left off.
           </div>
 
@@ -143,22 +143,22 @@ export default function LoginPage() {
             style={{
               appearance: 'none',
               border: `1px solid ${theme.lineStrong}`,
-              borderRadius: 12,
+              borderRadius: 14,
               background: theme.surface,
               color: theme.ink,
-              font: `600 15px 'Inter Tight'`,
-              padding: '13px 18px',
+              font: `600 17px 'Inter Tight'`,
+              padding: '16px 20px',
               width: '100%',
-              marginTop: 22,
+              marginTop: 26,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: 10,
+              gap: 12,
               cursor: 'pointer',
               boxShadow: '0 1px 0 rgba(255,255,255,0.5) inset, 0 2px 6px rgba(0,0,0,0.04)',
             }}
           >
-            <svg width="20" height="20" viewBox="0 0 20 20">
+            <svg width="22" height="22" viewBox="0 0 20 20">
               <path
                 d="M19.6 10.23c0-.7-.06-1.36-.16-2H10v3.78h5.36c-.23 1.24-.94 2.3-2 3v2.5h3.22c1.88-1.73 2.97-4.28 2.97-7.28Z"
                 fill="#4285F4"
@@ -183,9 +183,9 @@ export default function LoginPage() {
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 10,
-              margin: '22px 0',
-              font: `500 11px 'Inter Tight'`,
+              gap: 12,
+              margin: '26px 0',
+              font: `500 12px 'Inter Tight'`,
               color: theme.ink3,
               letterSpacing: '0.06em',
               textTransform: 'uppercase',
@@ -195,23 +195,24 @@ export default function LoginPage() {
             <div style={{ flex: 1, height: 1, background: theme.line }} />
           </div>
 
-          <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 14 }}>
             {[
-              'No passwords. Sign in in one tap.',
-              'Avatar + email come from your Google profile.',
-              'You can delete your account any time.',
+              'No passwords — one-tap sign-in.',
+              'Your name and avatar come from Google.',
+              'Delete your account anytime in settings.',
             ].map((t, i) => (
               <li
                 key={i}
                 style={{
-                  font: `500 13px 'Inter Tight'`,
+                  font: `500 15px 'Inter Tight'`,
                   color: theme.ink2,
                   display: 'flex',
                   alignItems: 'flex-start',
-                  gap: 8,
+                  gap: 10,
+                  lineHeight: 1.45,
                 }}
               >
-                <svg width="14" height="14" viewBox="0 0 14 14" style={{ flex: '0 0 auto', marginTop: 3 }}>
+                <svg width="16" height="16" viewBox="0 0 14 14" style={{ flex: '0 0 auto', marginTop: 4 }}>
                   <path
                     d="M2 7 L6 11 L12 3"
                     fill="none"
@@ -228,10 +229,11 @@ export default function LoginPage() {
 
           <div
             style={{
-              font: `500 11px 'Inter Tight'`,
+              font: `500 12px 'Inter Tight'`,
               color: theme.ink3,
-              marginTop: 24,
+              marginTop: 28,
               textAlign: 'center',
+              lineHeight: 1.5,
             }}
           >
             By signing in you agree to our Terms & Privacy.
@@ -245,12 +247,12 @@ export default function LoginPage() {
 function Stat({ n, l }: { n: string; l: string }) {
   return (
     <div>
-      <div style={{ font: `900 28px 'Inter Tight'`, letterSpacing: '-0.02em', lineHeight: 1 }}>{n}</div>
+      <div style={{ font: `900 36px 'Inter Tight'`, letterSpacing: '-0.02em', lineHeight: 1 }}>{n}</div>
       <div
         style={{
-          font: `500 12px 'Inter Tight'`,
-          opacity: 0.65,
-          marginTop: 4,
+          font: `500 13px 'Inter Tight'`,
+          opacity: 0.78,
+          marginTop: 6,
           letterSpacing: '0.04em',
           textTransform: 'uppercase',
         }}
