@@ -171,13 +171,15 @@ export default function LibraryPage() {
             }}
             style={{ cursor: 'pointer' }}
           >
-            <BookCover
-              book={b}
-              w="100%"
-              h={240}
-              style={{ width: '100%', height: 240 }}
-              showBadge={b.status === 'reading' ? 'reading' : null}
-            />
+            <div style={{ width: '100%', aspectRatio: '2 / 3' }}>
+              <BookCover
+                book={b}
+                w="100%"
+                h="100%"
+                style={{ width: '100%', height: '100%' }}
+                showBadge={b.status === 'reading' ? 'reading' : null}
+              />
+            </div>
             <div
               style={{
                 font: `700 14px 'Inter Tight'`,
