@@ -7,6 +7,7 @@ interface IntakePayload {
   prompt?: string;
   finished?: { title: string; author: string; genre?: string; rating?: number | null }[];
   queued?: { title: string; author: string; genre?: string }[];
+  skipped?: { title: string; author: string }[];
   current?: { title: string; author: string; genre?: string } | null;
 }
 
@@ -40,6 +41,7 @@ You will be given a user's reading history and preferences. Recommend exactly fi
 Hard rules:
 - Real books only — do not invent titles or authors.
 - Do not recommend a book the user has already finished, is currently reading, or has in their queue.
+- Do not recommend a book the user has previously skipped or rejected — these are listed explicitly under "Already rejected (do not recommend)". This is a hard constraint, not a soft preference.
 - Do not recommend a book the user has asked to avoid (or anything stylistically very close to it).
 - Estimate page count for the most common English-language edition; if unsure, give a sensible round number.
 - The "why" must reference something concrete from the user's history (a finished book, a stated genre preference, the avoid list, or the free prompt). One sentence, warm but specific, no marketing fluff.
@@ -69,6 +71,12 @@ const buildUserMessage = (p: IntakePayload): string => {
   if (p.queued && p.queued.length) {
     lines.push('In queue (do not re-recommend):');
     for (const b of p.queued.slice(0, 20)) {
+      lines.push(`  - "${b.title}" by ${b.author}`);
+    }
+  }
+  if (p.skipped && p.skipped.length) {
+    lines.push('Already rejected (do not recommend):');
+    for (const b of p.skipped.slice(0, 100)) {
       lines.push(`  - "${b.title}" by ${b.author}`);
     }
   }

@@ -57,6 +57,31 @@ const ALL_GENRES = [
   'Essays',
 ];
 
+const SKIPPED_STORAGE_KEY = 'page-streak.discover.skipped';
+
+type SkippedEntry = { title: string; author: string };
+
+function loadSkipped(): SkippedEntry[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(SKIPPED_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as SkippedEntry[];
+    return Array.isArray(parsed) ? parsed.filter((e) => e?.title && e?.author) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveSkipped(list: SkippedEntry[]) {
+  try {
+    // Cap at 200 to keep payload small and storage bounded.
+    localStorage.setItem(SKIPPED_STORAGE_KEY, JSON.stringify(list.slice(-200)));
+  } catch {
+    // ignore quota errors
+  }
+}
+
 export default function DiscoverPage() {
   const { theme, accent } = useTheme();
   const { addBook, todayKey, books, currentBook } = useApp();
@@ -66,10 +91,16 @@ export default function DiscoverPage() {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [drag, setDrag] = useState<DragState>({ x: 0, y: 0, dragging: false });
   const [history, setHistory] = useState<{ book: AIPick; action: 'save' | 'skip' }[]>([]);
+  const [skipped, setSkipped] = useState<SkippedEntry[]>([]);
   const [genres, setGenres] = useState<string[]>(['Non-fiction']);
-  const [avoid, setAvoid] = useState<string[]>(['Atomic Habits']);
+  const [avoid, setAvoid] = useState<string[]>([]);
   const [prompt, setPrompt] = useState('');
   const startRef = useRef<{ x: number; y: number } | null>(null);
+
+  // Rehydrate the lifetime skip list once on mount.
+  useEffect(() => {
+    setSkipped(loadSkipped());
+  }, []);
 
   const fetchPicks = useCallback(async () => {
     setLoading(true);
@@ -86,7 +117,7 @@ export default function DiscoverPage() {
       : null;
     const { data, error } = await sb.functions.invoke<{ picks: Omit<AIPick, 'id' | 'palette'>[] }>(
       'discover-picks',
-      { body: { genres, avoid, prompt, finished, queued, current } },
+      { body: { genres, avoid, prompt, finished, queued, current, skipped } },
     );
     if (error || !data?.picks) {
       setFetchError(error?.message ?? 'Could not fetch picks. Try again.');
@@ -112,7 +143,7 @@ export default function DiscoverPage() {
         setPicks((current) => current.map((c) => (c.id === p.id ? { ...c, cover_url: url } : c)));
       }),
     );
-  }, [books, currentBook, genres, avoid, prompt]);
+  }, [books, currentBook, genres, avoid, prompt, skipped]);
 
   // Fetch picks once the user's library has loaded.
   const hasFetchedRef = useRef(false);
@@ -141,6 +172,13 @@ export default function DiscoverPage() {
         added_by: 'ai',
         added_at: new Date().toISOString(),
         reason: topPick.why,
+      });
+    } else {
+      // Persist the rejection so it survives reloads and is sent on the next fetch.
+      setSkipped((prev) => {
+        const next = [...prev, { title: topPick.title, author: topPick.author }];
+        saveSkipped(next);
+        return next;
       });
     }
     setPicks((p) => p.slice(1));
