@@ -91,7 +91,7 @@ On first sign-in (no books yet), 12 starter books from the design's seed list ar
 ## Caveats
 
 - This is a **static export**. There are no Next.js API routes; all server-side work happens in Supabase. If you need server logic (cron, webhooks, AI calls), add Supabase Edge Functions and call them from the client.
-- The **Discover** screen ships with a fixed 5-pick AI suggestion list (`AI_PICKS` in `src/lib/data/seedBooks.ts`). Wiring it up to a real LLM is left to a future iteration — point an Edge Function at the Anthropic API and replace the static list.
+- The **Discover** screen calls a Supabase Edge Function (`supabase/functions/discover-picks`) which proxies DeepSeek's chat API. The function expects `DEEPSEEK_API_KEY` set via `supabase secrets set DEEPSEEK_API_KEY=...`. To switch model providers, edit the Edge Function — the client just expects `{ picks: [{ title, author, pages, genre, why }] }` back.
 - The **Onboarding** flow from the design's chat transcript isn't wired up yet — sign-in goes straight to Today. Add `/onboarding` if you want a first-run flow.
 
 ## Credits

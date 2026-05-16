@@ -1,9 +1,10 @@
 'use client';
-import { useRef, useState } from 'react';
-import { accentGrad, accentSoftBg } from '@/lib/design/theme';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { accentGrad, accentSoftBg, type Accent } from '@/lib/design/theme';
 import { useTheme } from '@/lib/design/ThemeContext';
 import { useApp } from '@/lib/data/AppStateContext';
-import { AI_PICKS, type AIPick } from '@/lib/data/seedBooks';
+import { type AIPick } from '@/lib/data/seedBooks';
+import { getSupabase } from '@/lib/supabase/client';
 import { Page, PageHeader, TopBar, TopBarBtn } from '@/components/layout/Page';
 import { Btn, Card, Pill, Tag } from '@/components/ui/Primitives';
 import { BookCover } from '@/components/BookCover';
@@ -14,6 +15,16 @@ interface DragState {
   y: number;
   dragging: boolean;
 }
+
+const PICK_PALETTES: Accent[] = [
+  ['#3a1e1e', '#c9846d'],
+  ['#1c2541', '#5bc0be'],
+  ['#2b1e3a', '#dfc8e8'],
+  ['#1a3a3a', '#9bc6c4'],
+  ['#3a2e1f', '#e8b339'],
+  ['#1f1c3a', '#7d83c4'],
+  ['#5e2129', '#e9b8a3'],
+];
 
 const ALL_GENRES = [
   'Sci-fi',
@@ -32,15 +43,60 @@ const ALL_GENRES = [
 
 export default function DiscoverPage() {
   const { theme, accent } = useTheme();
-  const { addBook, todayKey } = useApp();
+  const { addBook, todayKey, books, currentBook } = useApp();
   const [intakeOpen, setIntakeOpen] = useState(false);
-  const [picks, setPicks] = useState<AIPick[]>(AI_PICKS);
+  const [picks, setPicks] = useState<AIPick[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [drag, setDrag] = useState<DragState>({ x: 0, y: 0, dragging: false });
   const [history, setHistory] = useState<{ book: AIPick; action: 'save' | 'skip' }[]>([]);
   const [genres, setGenres] = useState<string[]>(['Non-fiction']);
   const [avoid, setAvoid] = useState<string[]>(['Atomic Habits']);
   const [prompt, setPrompt] = useState('');
   const startRef = useRef<{ x: number; y: number } | null>(null);
+
+  const fetchPicks = useCallback(async () => {
+    setLoading(true);
+    setFetchError(null);
+    const sb = getSupabase();
+    const finished = books
+      .filter((b) => b.status === 'finished')
+      .map((b) => ({ title: b.title, author: b.author, genre: b.genre, rating: b.rating ?? null }));
+    const queued = books
+      .filter((b) => b.status === 'toread' || b.status === 'reading' || b.status === 'paused')
+      .map((b) => ({ title: b.title, author: b.author, genre: b.genre }));
+    const current = currentBook
+      ? { title: currentBook.title, author: currentBook.author, genre: currentBook.genre }
+      : null;
+    const { data, error } = await sb.functions.invoke<{ picks: Omit<AIPick, 'id' | 'palette'>[] }>(
+      'discover-picks',
+      { body: { genres, avoid, prompt, finished, queued, current } },
+    );
+    if (error || !data?.picks) {
+      setFetchError(error?.message ?? 'Could not fetch picks. Try again.');
+      setLoading(false);
+      return;
+    }
+    const stamp = Date.now();
+    const withMeta: AIPick[] = data.picks.map((p, i) => ({
+      ...p,
+      id: stamp + i,
+      palette: PICK_PALETTES[i % PICK_PALETTES.length],
+    }));
+    setPicks(withMeta);
+    setHistory([]);
+    setLoading(false);
+  }, [books, currentBook, genres, avoid, prompt]);
+
+  // Fetch picks once the user's library has loaded.
+  const hasFetchedRef = useRef(false);
+  useEffect(() => {
+    if (hasFetchedRef.current) return;
+    if (books.length === 0 && !currentBook) return; // wait for app state
+    hasFetchedRef.current = true;
+    void fetchPicks();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [books.length, currentBook]);
 
   const topPick = picks[0];
 
@@ -82,9 +138,8 @@ export default function DiscoverPage() {
   };
 
   const regenerate = () => {
-    setPicks(AI_PICKS);
-    setHistory([]);
     setIntakeOpen(false);
+    void fetchPicks();
   };
 
   const savedCount = history.filter((h) => h.action === 'save').length;
@@ -177,7 +232,53 @@ export default function DiscoverPage() {
                 );
               })}
 
-            {picks.length === 0 && (
+            {picks.length === 0 && loading && (
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  textAlign: 'center',
+                  padding: 32,
+                  height: '100%',
+                }}
+              >
+                <Spark size={56} accent={accent} />
+                <div style={{ font: `900 28px 'Inter Tight'`, letterSpacing: '-0.025em', marginTop: 18, color: theme.ink }}>
+                  Reading your shelf…
+                </div>
+                <div style={{ font: `500 14px 'Inter Tight'`, color: theme.ink2, marginTop: 6, maxWidth: 280, lineHeight: 1.5 }}>
+                  Picking five books based on what you&apos;ve finished and what you said you want.
+                </div>
+              </div>
+            )}
+
+            {picks.length === 0 && !loading && fetchError && (
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  textAlign: 'center',
+                  padding: 32,
+                  height: '100%',
+                }}
+              >
+                <div style={{ font: `900 28px 'Inter Tight'`, letterSpacing: '-0.025em', color: theme.ink }}>
+                  Something went wrong.
+                </div>
+                <div style={{ font: `500 14px 'Inter Tight'`, color: theme.ink2, marginTop: 6, maxWidth: 320, lineHeight: 1.5 }}>
+                  {fetchError}
+                </div>
+                <Btn primary onClick={regenerate} style={{ marginTop: 20 }}>
+                  Try again
+                </Btn>
+              </div>
+            )}
+
+            {picks.length === 0 && !loading && !fetchError && (
               <div
                 style={{
                   display: 'flex',
