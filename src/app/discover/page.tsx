@@ -26,6 +26,26 @@ const PICK_PALETTES: Accent[] = [
   ['#5e2129', '#e9b8a3'],
 ];
 
+async function lookupCover(title: string, author: string): Promise<string | null> {
+  const q = encodeURIComponent(`intitle:${title} inauthor:${author}`);
+  try {
+    const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${q}&maxResults=1&printType=books`);
+    if (!res.ok) return null;
+    const json = (await res.json()) as {
+      items?: { volumeInfo?: { imageLinks?: { thumbnail?: string; smallThumbnail?: string } } }[];
+    };
+    const link = json.items?.[0]?.volumeInfo?.imageLinks?.thumbnail ?? json.items?.[0]?.volumeInfo?.imageLinks?.smallThumbnail;
+    if (!link) return null;
+    // Normalise: https, drop the page-curl artefact, bump zoom for a crisper image.
+    return link
+      .replace(/^http:/, 'https:')
+      .replace(/&edge=curl/, '')
+      .replace(/zoom=\d+/, 'zoom=3');
+  } catch {
+    return null;
+  }
+}
+
 const ALL_GENRES = [
   'Sci-fi',
   'Self-help',
@@ -82,10 +102,20 @@ export default function DiscoverPage() {
       ...p,
       id: stamp + i,
       palette: PICK_PALETTES[i % PICK_PALETTES.length],
+      cover_url: null,
     }));
     setPicks(withMeta);
     setHistory([]);
     setLoading(false);
+
+    // Fill in real covers in the background; cards re-render as each resolves.
+    void Promise.all(
+      withMeta.map(async (p) => {
+        const url = await lookupCover(p.title, p.author);
+        if (!url) return;
+        setPicks((current) => current.map((c) => (c.id === p.id ? { ...c, cover_url: url } : c)));
+      }),
+    );
   }, [books, currentBook, genres, avoid, prompt]);
 
   // Fetch picks once the user's library has loaded.
@@ -109,6 +139,7 @@ export default function DiscoverPage() {
         author: topPick.author,
         pages: topPick.pages,
         palette: topPick.palette,
+        cover_url: topPick.cover_url ?? null,
         genre: topPick.genre,
         status: 'toread',
         added_by: 'ai',
@@ -641,7 +672,7 @@ function AICard({ book, drag }: { book: AIPick; drag: DragState | null }) {
             {book.title}
           </div>
           <div style={{ font: `500 14px 'Inter Tight'`, color: theme.ink3, marginTop: 4 }}>
-            {book.author} · {book.pages}pp · {book.genre}
+            {book.author} · {book.pages} pages · {book.genre}
           </div>
         </div>
         <div

@@ -30,6 +30,7 @@ export interface AIPick {
   palette: [string, string];
   genre: string;
   why: string;
+  cover_url?: string | null;
 }
 
 export const AI_PICKS: AIPick[] = [

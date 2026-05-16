@@ -9,6 +9,7 @@ export interface Book {
   pages: number;
   palette: [string, string];
   cover_style?: string;
+  cover_url?: string | null;
   genre?: string;
   status: BookStatus;
   current_page?: number;

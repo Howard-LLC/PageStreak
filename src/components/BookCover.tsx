@@ -36,6 +36,58 @@ interface BookCoverProps {
 }
 
 export function BookCover({ book, w, h, style = {}, showBadge }: BookCoverProps) {
+  if (book?.cover_url) {
+    return (
+      <div
+        style={{
+          width: w,
+          height: h,
+          position: 'relative',
+          background: '#1a1814',
+          boxShadow: `0 0 0 0.5px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.1), 0 12px 24px rgba(0,0,0,0.18), inset 1px 0 0 rgba(255,255,255,0.08), inset -2px 0 4px rgba(0,0,0,0.25)`,
+          overflow: 'hidden',
+          ...style,
+        }}
+      >
+        <img
+          src={book.cover_url}
+          alt={book.title ?? ''}
+          loading="lazy"
+          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+        />
+        <div
+          style={{
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            bottom: 0,
+            width: '5%',
+            background:
+              'linear-gradient(90deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.1) 60%, transparent 100%)',
+            pointerEvents: 'none',
+          }}
+        />
+        {showBadge && (
+          <div
+            style={{
+              position: 'absolute',
+              left: 0,
+              top: (typeof h === 'number' ? h : 120) * 0.06,
+              padding: '4px 10px',
+              background: '#fff',
+              color: '#1a1814',
+              font: `600 10px ${T.sans}`,
+              letterSpacing: '0.16em',
+              textTransform: 'uppercase',
+            }}
+          >
+            {showBadge}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   const palette =
     book?.palette ??
     COVER_PALETTES[Math.abs(book?.id ?? 0) % COVER_PALETTES.length];

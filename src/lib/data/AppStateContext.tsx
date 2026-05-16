@@ -53,6 +53,7 @@ interface RawBookRow {
   pages: number;
   palette: string[];
   cover_style: string | null;
+  cover_url: string | null;
   genre: string | null;
   status: string;
   current_page: number;
@@ -75,6 +76,7 @@ function rowToBook(r: RawBookRow): Book {
     pages: r.pages,
     palette: [r.palette[0], r.palette[1]] as [string, string],
     cover_style: r.cover_style ?? undefined,
+    cover_url: r.cover_url,
     genre: r.genre ?? undefined,
     status: r.status as Book['status'],
     current_page: r.current_page,
