@@ -11,6 +11,7 @@ import { BookCover } from '@/components/BookCover';
 import { StreakIcon } from '@/components/icons/StreakIcon';
 import { CheckinModal } from '@/components/checkin/CheckinModal';
 import { CelebrateOverlay } from '@/components/checkin/CelebrateOverlay';
+import { SearchBooksModal } from '@/components/SearchBooksModal';
 import { accentGrad } from '@/lib/design/theme';
 
 export default function TodayPage() {
@@ -20,6 +21,7 @@ export default function TodayPage() {
   const router = useRouter();
   const [showCheckin, setShowCheckin] = useState(false);
   const [showCelebrate, setShowCelebrate] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
 
   const goalHit = todayPages >= goal;
   const remaining = Math.max(0, goal - todayPages);
@@ -80,6 +82,7 @@ export default function TodayPage() {
                       <line x1="10" y1="10" x2="13" y2="13" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
                     </svg>
                   }
+                  onClick={() => setShowSearch(true)}
                 >
                   Search
                 </TopBarBtn>
@@ -585,6 +588,7 @@ export default function TodayPage() {
       {showCelebrate && (
         <CelebrateOverlay isStretch={todayPages >= stretchGoal} onClose={() => setShowCelebrate(false)} />
       )}
+      {showSearch && <SearchBooksModal onClose={() => setShowSearch(false)} />}
     </>
   );
 }
