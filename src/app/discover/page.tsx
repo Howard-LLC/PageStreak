@@ -4,6 +4,7 @@ import { accentGrad, accentSoftBg, type Accent } from '@/lib/design/theme';
 import { useTheme } from '@/lib/design/ThemeContext';
 import { useApp } from '@/lib/data/AppStateContext';
 import { type AIPick } from '@/lib/data/seedBooks';
+import { findCover } from '@/lib/data/covers';
 import { getSupabase } from '@/lib/supabase/client';
 import { Page, PageHeader, TopBar, TopBarBtn } from '@/components/layout/Page';
 import { Btn, Card, Pill, Tag } from '@/components/ui/Primitives';
@@ -26,21 +27,7 @@ const PICK_PALETTES: Accent[] = [
   ['#5e2129', '#e9b8a3'],
 ];
 
-async function lookupCover(title: string, author: string): Promise<string | null> {
-  // Open Library: free, no quota. Search for an edition with a cover, then build the image URL.
-  try {
-    const t = encodeURIComponent(title);
-    const a = encodeURIComponent(author);
-    const res = await fetch(`https://openlibrary.org/search.json?title=${t}&author=${a}&limit=3`);
-    if (!res.ok) return null;
-    const json = (await res.json()) as { docs?: { cover_i?: number }[] };
-    const coverId = json.docs?.find((d) => d.cover_i)?.cover_i;
-    if (!coverId) return null;
-    return `https://covers.openlibrary.org/b/id/${coverId}-L.jpg`;
-  } catch {
-    return null;
-  }
-}
+// Cover lookup lives in src/lib/data/covers.ts (Open Library → iTunes fallback).
 
 const ALL_GENRES = [
   'Sci-fi',
@@ -138,7 +125,7 @@ export default function DiscoverPage() {
     // Fill in real covers in the background; cards re-render as each resolves.
     void Promise.all(
       withMeta.map(async (p) => {
-        const url = await lookupCover(p.title, p.author);
+        const url = await findCover(p.title, p.author);
         if (!url) return;
         setPicks((current) => current.map((c) => (c.id === p.id ? { ...c, cover_url: url } : c)));
       }),

@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { T, accentGrad, type Accent } from '@/lib/design/theme';
 import { useTheme } from '@/lib/design/ThemeContext';
 import { useApp } from '@/lib/data/AppStateContext';
+import { findCover, openLibraryCoverUrl } from '@/lib/data/covers';
 import { Wordmark } from '@/components/icons/Logo';
 
 type Step = 'welcome' | 'birthday' | 'gender' | 'books' | 'done';
@@ -18,6 +19,7 @@ interface SearchHit {
   author: string;
   pages: number | null;
   coverId: number | null;
+  fallbackCoverUrl?: string | null;
 }
 
 const READ_PALETTES: Accent[] = [
@@ -55,6 +57,12 @@ export default function OnboardingPage() {
     // Persist books first (so they exist in case onboarding marker write fails)
     for (let i = 0; i < selectedBooks.length; i++) {
       const b = selectedBooks[i];
+      let coverUrl: string | null = b.coverId
+        ? openLibraryCoverUrl(b.coverId)
+        : b.fallbackCoverUrl ?? null;
+      if (!coverUrl) {
+        coverUrl = await findCover(b.title, b.author);
+      }
       await addBook({
         title: b.title,
         author: b.author,
@@ -63,7 +71,7 @@ export default function OnboardingPage() {
         status: 'finished',
         added_by: 'manual',
         added_at: new Date().toISOString(),
-        cover_url: b.coverId ? `https://covers.openlibrary.org/b/id/${b.coverId}-L.jpg` : null,
+        cover_url: coverUrl,
       });
     }
     await completeOnboarding({
@@ -662,8 +670,24 @@ function BooksStep({
           author: d.author_name?.[0] ?? '',
           pages: d.number_of_pages_median ?? null,
           coverId: d.cover_i ?? null,
+          fallbackCoverUrl: null,
         }));
         setResults(hits);
+
+        // Background-fill covers for rows Open Library couldn't supply.
+        const fallbackCtrl = new AbortController();
+        ctrl.signal.addEventListener('abort', () => fallbackCtrl.abort());
+        void Promise.all(
+          hits
+            .filter((h) => !h.coverId)
+            .map(async (h) => {
+              const url = await findCover(h.title, h.author, fallbackCtrl.signal);
+              if (!url) return;
+              setResults((curr) =>
+                curr.map((c) => (c.key === h.key ? { ...c, fallbackCoverUrl: url } : c)),
+              );
+            }),
+        );
       } catch (err) {
         if ((err as { name?: string })?.name !== 'AbortError') {
           // ignore — search is best-effort
@@ -748,10 +772,10 @@ function BooksStep({
                 }}
               >
                 <div style={{ width: 36, height: 54, flex: '0 0 auto' }}>
-                  {hit.coverId ? (
+                  {hit.coverId || hit.fallbackCoverUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={`https://covers.openlibrary.org/b/id/${hit.coverId}-M.jpg`}
+                      src={hit.coverId ? `https://covers.openlibrary.org/b/id/${hit.coverId}-M.jpg` : hit.fallbackCoverUrl!}
                       alt=""
                       style={{ width: 36, height: 54, objectFit: 'cover', borderRadius: 3 }}
                     />
@@ -859,10 +883,10 @@ function SelectedChip({
       }}
     >
       <div style={{ width: 28, height: 40, flex: '0 0 auto' }}>
-        {hit.coverId ? (
+        {hit.coverId || hit.fallbackCoverUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={`https://covers.openlibrary.org/b/id/${hit.coverId}-S.jpg`}
+            src={hit.coverId ? `https://covers.openlibrary.org/b/id/${hit.coverId}-S.jpg` : hit.fallbackCoverUrl!}
             alt=""
             style={{ width: 28, height: 40, objectFit: 'cover', borderRadius: 2 }}
           />

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { T, type Accent } from '@/lib/design/theme';
 import { useTheme } from '@/lib/design/ThemeContext';
 import { useApp } from '@/lib/data/AppStateContext';
+import { findCover, openLibraryCoverUrl } from '@/lib/data/covers';
 import type { BookStatus } from '@/lib/data/types';
 
 interface SearchHit {
@@ -11,6 +12,7 @@ interface SearchHit {
   author: string;
   pages: number | null;
   coverId: number | null;
+  fallbackCoverUrl?: string | null;
 }
 
 const QUEUE_PALETTES: Accent[] = [
@@ -113,8 +115,25 @@ export function SearchBooksModal({
           author: d.author_name?.[0] ?? '',
           pages: d.number_of_pages_median ?? null,
           coverId: d.cover_i ?? null,
+          fallbackCoverUrl: null,
         }));
         setResults(hits);
+
+        // For results without an Open Library cover, run the fallback chain in
+        // the background and patch each row when a URL resolves.
+        const fallbackCtrl = new AbortController();
+        ctrl.signal.addEventListener('abort', () => fallbackCtrl.abort());
+        void Promise.all(
+          hits
+            .filter((h) => !h.coverId)
+            .map(async (h) => {
+              const url = await findCover(h.title, h.author, fallbackCtrl.signal);
+              if (!url) return;
+              setResults((curr) =>
+                curr.map((c) => (c.key === h.key ? { ...c, fallbackCoverUrl: url } : c)),
+              );
+            }),
+        );
       } catch (err) {
         if ((err as { name?: string })?.name !== 'AbortError') {
           // best-effort
@@ -132,6 +151,15 @@ export function SearchBooksModal({
   const addOne = async (hit: SearchHit, idx: number) => {
     if (addedKeys.has(hit.key) || pendingKey === hit.key) return;
     setPendingKey(hit.key);
+    // Pick the best cover we know about right now; if none yet, run the
+    // fallback chain inline so the saved row gets a cover the first time it
+    // appears in the library.
+    let coverUrl: string | null = hit.coverId
+      ? openLibraryCoverUrl(hit.coverId)
+      : hit.fallbackCoverUrl ?? null;
+    if (!coverUrl) {
+      coverUrl = await findCover(hit.title, hit.author);
+    }
     const result = await addBook({
       title: hit.title,
       author: hit.author,
@@ -140,7 +168,7 @@ export function SearchBooksModal({
       status: defaultStatus,
       added_by: 'manual',
       added_at: new Date().toISOString(),
-      cover_url: hit.coverId ? `https://covers.openlibrary.org/b/id/${hit.coverId}-L.jpg` : null,
+      cover_url: coverUrl,
     });
     setPendingKey(null);
     if (result) {
@@ -309,10 +337,10 @@ export function SearchBooksModal({
                 }}
               >
                 <div style={{ width: 44, height: 66, flex: '0 0 auto' }}>
-                  {hit.coverId ? (
+                  {hit.coverId || hit.fallbackCoverUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={`https://covers.openlibrary.org/b/id/${hit.coverId}-M.jpg`}
+                      src={hit.coverId ? `https://covers.openlibrary.org/b/id/${hit.coverId}-M.jpg` : hit.fallbackCoverUrl!}
                       alt=""
                       style={{ width: 44, height: 66, objectFit: 'cover', borderRadius: 3 }}
                     />
